@@ -135,7 +135,3 @@ Agradecimentos especiais a todos que ajudaram a construir o projeto 💙
 
 Este projeto é distribuído sob a licença **MIT**.  
 Sinta-se à vontade para usar, modificar e contribuir!
-
----
-
-> 💡 *Dica:* você pode adicionar imagens, GIFs de demonstração ou exemplos de PDFs renomeados para deixar o README ainda mais atrativo.
