@@ -91,7 +91,7 @@ def processar_pdf(caminho_pdf):
             tipo_documento = None
         if matricula is None or serial_maquina is None or usuario_portador is None or tipo_documento is None:
             print(f"texto: {texto}")
-            raise Exception(f"Informações insuficientes para renomear o arquivo. tipo_documento: {tipo_documento}, Matrícula: {matricula}, Serial: {serial_maquina}, Usuário: {usuario_portador}")
+            raise ValueError(f"Informações insuficientes para renomear o arquivo. tipo_documento: {tipo_documento}, Matrícula: {matricula}, Serial: {serial_maquina}, Usuário: {usuario_portador}")
 
         # --- Gera o novo nome ---
         novo_nome = f"{tipo_documento}_{matricula}_{usuario_portador}_{serial_maquina}".upper()
