@@ -4,6 +4,18 @@ import fitz  # PyMuPDF
 from pdf2image import convert_from_path
 import pytesseract
 from tkinter import filedialog, Tk
+import os
+import sys
+import pytesseract
+from PIL import Image
+import io
+
+if getattr(sys, 'frozen', False):
+    app_dir = sys._MEIPASS  # pasta temporária usada pelo PyInstaller
+    tesseract_path = os.path.join(app_dir, "tesseract", "tesseract")
+else:
+    # Caminho padrão do sistema (para rodar no ambiente de desenvolvimento)
+    tesseract_path = "/opt/homebrew/bin/tesseract" # Mac m3 (Apple Silicon) brew
 
 def escolher_pasta():
     root = Tk()
@@ -30,11 +42,20 @@ def extrair_texto_pdf(caminho_pdf):
     return texto.strip()
 
 def extrair_ocr_pdf(caminho_pdf):
-    imagens = convert_from_path(caminho_pdf)
-    texto = ""
-    for img in imagens:
-        texto += pytesseract.image_to_string(img, lang="por")
-    return texto.strip()
+    texto_total = ""
+    with fitz.open(caminho_pdf) as pdf:
+        for pagina in pdf:
+            # Renderiza a página como imagem (alta resolução)
+            pix = pagina.get_pixmap(matrix=fitz.Matrix(2, 2))
+            img_bytes = pix.tobytes("png")
+            
+            # Converte bytes -> imagem PIL
+            imagem = Image.open(io.BytesIO(img_bytes))
+            
+            # Extrai texto via OCR
+            texto_total += pytesseract.image_to_string(imagem) + "\n"
+    
+    return texto_total.strip()
 
 def processar_pdf(caminho_pdf):
     texto = extrair_texto_pdf(caminho_pdf)
@@ -42,6 +63,7 @@ def processar_pdf(caminho_pdf):
         print(f"📸 OCR necessário: {os.path.basename(caminho_pdf)}")
         texto = extrair_ocr_pdf(caminho_pdf)
     try:
+        texto = texto.replace("\n", " ").replace("\r", " ").replace("  ", " ")
         # --- Regras de extração ---
 
         # 1️⃣ Matrícula -> "Matr. " seguido de 6 dígitos
@@ -60,17 +82,17 @@ def processar_pdf(caminho_pdf):
         texto_lower = texto.lower()
         if "termo de responsabilidade" in texto_lower:
             tipoDocumento = "TR"
-        elif "termo de devolução" in texto_lower:
+        elif "termo de devolu" in texto_lower:
             tipoDocumento = "TD"
         else:
-            None
+            tipoDocumento = None
         if matricula is None or serialMaquina is None or usuarioPortador is None or tipoDocumento is None:
-            raise Exception("Informações insuficientes para renomear o arquivo.")
+            print(f"texto: {texto}")
+            raise Exception(f"Informações insuficientes para renomear o arquivo. TipoDocumento: {tipoDocumento}, Matrícula: {matricula}, Serial: {serialMaquina}, Usuário: {usuarioPortador}")
 
         # --- Gera o novo nome ---
         novo_nome = f"{tipoDocumento}_{matricula}_{usuarioPortador}_{serialMaquina}".upper()
         novo_caminho = os.path.join(PASTA, f"{novo_nome}.pdf")
-    
         os.rename(caminho_pdf, novo_caminho)
         print(f"✅ {os.path.basename(caminho_pdf)} → {novo_nome}.pdf")
     except Exception as e:
