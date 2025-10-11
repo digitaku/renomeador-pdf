@@ -127,7 +127,7 @@ Agradecimentos especiais a todos que ajudaram a construir o projeto 💙
 
 | [<img src="https://avatars.githubusercontent.com/u/50982572?v=4" width="80" height="80" style="border-radius:50%">](https://github.com/digitaku) |
 |:--:|
-| [@atilas-santos](https://github.com/digitaku) |
+| [@digitaku](https://github.com/digitaku) |
 
 ---
 
