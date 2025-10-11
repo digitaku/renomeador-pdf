@@ -1,7 +1,6 @@
 import os
 import re
 import fitz  # PyMuPDF
-from pdf2image import convert_from_path
 import pytesseract
 from tkinter import filedialog, Tk
 import os
@@ -12,10 +11,14 @@ import io
 
 if getattr(sys, 'frozen', False):
     app_dir = sys._MEIPASS  # pasta temporária usada pelo PyInstaller
-    tesseract_path = os.path.join(app_dir, "tesseract", "tesseract")
+    tipo_tesseract = "tesseract.exe" if os.name == 'nt' else "tesseract"
+    tesseract_path = os.path.join(app_dir, "tesseract", tipo_tesseract)
 else:
     # Caminho padrão do sistema (para rodar no ambiente de desenvolvimento)
-    tesseract_path = "/opt/homebrew/bin/tesseract" # Mac m3 (Apple Silicon) brew
+    if os.name == 'nt':  # Windows
+        tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    else:
+        tesseract_path = "/opt/homebrew/bin/tesseract" # Mac m3 (Apple Silicon) brew
 
 def escolher_pasta():
     root = Tk()
@@ -72,26 +75,26 @@ def processar_pdf(caminho_pdf):
 
         # 2️⃣ Serial da máquina -> Começa com BR e tem 10 caracteres
         match_serial = re.search(PADRAO_SERIAL, texto)
-        serialMaquina = match_serial.group(1) if match_serial else None
+        serial_maquina = match_serial.group(1) if match_serial else None
 
         # 3️⃣ Usuário portador -> parte antes do @
         match_email = re.search(PADRAO_EMAIL, texto)
-        usuarioPortador = match_email.group(1) if match_email else None
+        usuario_portador = match_email.group(1) if match_email else None
 
         # 4️⃣ Tipo de documento
         texto_lower = texto.lower()
         if "termo de responsabilidade" in texto_lower:
-            tipoDocumento = "TR"
+            tipo_documento = "TR"
         elif "termo de devolu" in texto_lower:
-            tipoDocumento = "TD"
+            tipo_documento = "TD"
         else:
-            tipoDocumento = None
-        if matricula is None or serialMaquina is None or usuarioPortador is None or tipoDocumento is None:
+            tipo_documento = None
+        if matricula is None or serial_maquina is None or usuario_portador is None or tipo_documento is None:
             print(f"texto: {texto}")
-            raise Exception(f"Informações insuficientes para renomear o arquivo. TipoDocumento: {tipoDocumento}, Matrícula: {matricula}, Serial: {serialMaquina}, Usuário: {usuarioPortador}")
+            raise Exception(f"Informações insuficientes para renomear o arquivo. tipo_documento: {tipo_documento}, Matrícula: {matricula}, Serial: {serial_maquina}, Usuário: {usuario_portador}")
 
         # --- Gera o novo nome ---
-        novo_nome = f"{tipoDocumento}_{matricula}_{usuarioPortador}_{serialMaquina}".upper()
+        novo_nome = f"{tipo_documento}_{matricula}_{usuario_portador}_{serial_maquina}".upper()
         novo_caminho = os.path.join(PASTA, f"{novo_nome}.pdf")
         os.rename(caminho_pdf, novo_caminho)
         print(f"✅ {os.path.basename(caminho_pdf)} → {novo_nome}.pdf")
