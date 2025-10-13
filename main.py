@@ -30,7 +30,7 @@ def escolher_pasta():
 PASTA = escolher_pasta()
 
 # Regex para detectar algo no texto (exemplo: CPF)
-PADRAO_MATRICULA = re.compile(r"Matr\.?\s*(\d{6})")
+PADRAO_MATRICULA = re.compile(r"(?:Matr\.?\s*|usu_matricula\s*=\s*)(\d{6,10})", re.IGNORECASE)
 PADRAO_SERIAL = re.compile(r"\b(BR[A-Za-z0-9]{8})\b")
 PADRAO_EMAIL= re.compile(r"([a-zA-Z0-9._%+-]+)@")
 
@@ -91,7 +91,7 @@ def processar_pdf(caminho_pdf):
             tipo_documento = None
         if matricula is None or serial_maquina is None or usuario_portador is None or tipo_documento is None:
             print(f"texto: {texto}")
-            raise ValueError(f"Informações insuficientes para renomear o arquivo. tipo_documento: {tipo_documento}, Matrícula: {matricula}, Serial: {serial_maquina}, Usuário: {usuario_portador}")
+            raise ValueError(f"Informações insuficientes para renomear o arquivo. \ntipo_documento: {tipo_documento}\nMatrícula: {matricula}\nSerial: {serial_maquina}\nUsuário: {usuario_portador}")
 
         # --- Gera o novo nome ---
         novo_nome = f"{tipo_documento}_{matricula}_{usuario_portador}_{serial_maquina}".upper()
