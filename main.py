@@ -103,8 +103,11 @@ def processar_pdf(caminho_pdf):
             print(f"texto: {texto}")
             raise ValueError(f"Informações insuficientes para renomear o arquivo. \ntipo_documento: {tipo_documento}\nMatrícula: {matricula}\nSerial: {serial_maquina}\nUsuário: {usuario_portador}")
 
+        if possivel_titulo_completo:
+            novo_nome = possivel_titulo_completo.group(0)
+        else:
+            novo_nome = f"{tipo_documento}_{serial_maquina}-{matricula}-{usuario_portador}"
         # --- Gera o novo nome ---
-        novo_nome = f"{tipo_documento}_{matricula}_{usuario_portador}_{serial_maquina}".upper()
         novo_caminho = os.path.join(PASTA, f"{novo_nome}.pdf")
         os.rename(caminho_pdf, novo_caminho)
         print(f"✅ {os.path.basename(caminho_pdf)} → {novo_nome}.pdf")
