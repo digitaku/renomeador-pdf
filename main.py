@@ -11,14 +11,16 @@ import io
 
 if getattr(sys, 'frozen', False):
     app_dir = sys._MEIPASS  # pasta temporária usada pelo PyInstaller
-    tipo_tesseract = "tesseract.exe" if os.name == 'nt' else "tesseract"
-    tesseract_path = os.path.join(app_dir, "tesseract", tipo_tesseract)
+    tesseract_path = os.path.join(app_dir, "tesseract", "tesseract.exe")
+    os.environ["TESSDATA_PREFIX"] = os.path.join(app_dir, "tesseract", "tessdata")
 else:
     # Caminho padrão do sistema (para rodar no ambiente de desenvolvimento)
     if os.name == 'nt':  # Windows
         tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     else:
         tesseract_path = "/opt/homebrew/bin/tesseract" # Mac m3 (Apple Silicon) brew
+        
+pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 def escolher_pasta():
     root = Tk()

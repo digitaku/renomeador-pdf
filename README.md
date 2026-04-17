@@ -88,7 +88,13 @@ python main.py
 Para empacotar o programa e gerar um arquivo `.exe` (Windows) ou binário (Linux/macOS), use o **PyInstaller**:
 
 ```bash
-pyinstaller --onefile --noconsole --add-binary "tesseract/tesseract:tesseract" --add-data "tesseract/tessdata:tesseract/tessdata" main.py
+pyinstaller --name "renomeador-pdf" --onefile --noconsole --add-binary "tesseract/*;tesseract" --add-data "tesseract/tessdata;tesseract/tessdata" main.py
+```
+
+ou utilize o comando para gerar um executavel que abre o console
+
+```bash
+pyinstaller --name "renomeador-pdf-console" --onefile --add-binary "tesseract/*;tesseract" --add-data "tesseract/tessdata;tesseract/tessdata" main.py
 ```
 
 O executável será criado na pasta `dist/`.
