@@ -30,12 +30,35 @@ def escolher_pasta():
 PASTA = escolher_pasta()
 
 # Regex para detectar algo no texto (exemplo: CPF)
-PADRAO_MATRICULA = re.compile(r"(?:Matr\.?\s*|usu_matricula\s*=\s*)(\d{6,10})", re.IGNORECASE)
-PADRAO_SERIAL = re.compile(r'\b(BR[A-Za-z0-9]{8})\b'r'|\bNOTEBOOK\s+([A-Za-z0-9]+)\b'r'|\bTR_([A-Za-z0-9]+)-[^\s]+\b')
+PADRAO_MATRICULA =re.compile( r"""
+    (?:                                 # Grupo não capturante
+        (?:TD|TR|TO)_[^-]*-?            # Prefixo TD_/TR_/TO_
+        (\d{6,10})                      # ← matrícula no nome do arquivo
+        (?=-)                           # seguida de hífen
+      |
+        matr(?:icula)?\s*               # palavra "matr" ou "matricula"
+        [^\d]{0,5}                      # :, *, n°, virgula etc
+        (\d{6,10})                      # ← matrícula textual
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE
+)
+PADRAO_SERIAL = re.compile(
+    r"""
+    \b(BR[A-Za-z0-9]{8})\b                 # Seriais BRXXXXXXXX
+    |
+    \bNOTEBOOK\s+([A-Za-z0-9]+)\b          # Após NOTEBOOK
+    |
+    \bMONITOR\s+([A-Za-z0-9]+)\b           # ✅ Após MONITOR
+    |
+    \bTR_([A-Za-z0-9]+)-[^\s]+\b           # Dentro de TR_
+    """,
+    re.IGNORECASE | re.VERBOSE
+)
+
 PADRAO_SERIAL_TR = re.compile( r'\bTR_([A-Za-z0-9]{7,})-')
 PADRAO_EMAIL= re.compile(r"([a-zA-Z0-9._%+-]+)@")
-PADRAO_NOME_ARQUIVO_TD = re.compile(r'^TD_[^-]+-\d+-[^-]+$', re.IGNORECASE)
-PADRAO_NOME_ARQUIVO_TR = re.compile(r'^TR_[^-]+-\d+-[^-]+$', re.IGNORECASE)
+PADRAO_NOME_ARQUIVO = re.compile(r'(TD|TR)_[^-\s]+-\d+-[^-\s]+', re.IGNORECASE)
 
 def extrair_texto_pdf(caminho_pdf):
     texto = ""
@@ -69,17 +92,18 @@ def processar_pdf(caminho_pdf):
         print(f"📸 OCR necessário: {os.path.basename(caminho_pdf)}")
         texto = extrair_ocr_pdf(caminho_pdf)
     try:
-        possivel_titulo_completo = None
         texto = texto.replace("\n", " ").replace("\r", " ").replace("  ", " ")
+        busca_nome_arquivo = re.search(PADRAO_NOME_ARQUIVO, texto)
+        possivel_titulo_completo = busca_nome_arquivo.group(0) if busca_nome_arquivo else None
         # --- Regras de extração ---
 
         # 1️⃣ Matrícula -> "Matr. " seguido de 6 dígitos
         match_matricula = re.search(PADRAO_MATRICULA, texto)
-        matricula = match_matricula.group(1) if match_matricula else None
+        matricula = match_matricula.group(1) or match_matricula.group(2) if match_matricula else None
 
         # 2️⃣ Serial da máquina -> Começa com BR e tem 10 caracteres
         match_serial = re.search(PADRAO_SERIAL, texto)
-        serial_maquina = match_serial.group(1) or match_serial.group(2) or match_serial.group(3) if match_serial else None
+        serial_maquina = next(g for g in match_serial.groups() if g) if match_serial else None
 
         # 3️⃣ Usuário portador -> parte antes do @
         match_email = re.search(PADRAO_EMAIL, texto)
@@ -87,24 +111,22 @@ def processar_pdf(caminho_pdf):
 
         # 4️⃣ Tipo de documento
         texto_lower = texto.lower()
-        if "termo de responsabilidade" in texto_lower:
+        if "responsabilidade" in texto_lower:
             tipo_documento = "TR"
-            possivel_titulo_completo = re.search(PADRAO_NOME_ARQUIVO_TR, texto)
             match_serial_tr = re.search(PADRAO_SERIAL_TR, texto)
             if match_serial_tr:
                 serial_maquina = match_serial_tr.group(1)
-        elif "termo de devolu" in texto_lower:
+        elif "devolu" in texto_lower:
             tipo_documento = "TD"
-            possivel_titulo_completo = re.search(PADRAO_NOME_ARQUIVO_TD, texto)
         else:
             tipo_documento = None
             possivel_titulo_completo = None
-        if matricula is None or serial_maquina is None or usuario_portador is None or tipo_documento is None:
+        if possivel_titulo_completo is None and (matricula is None or serial_maquina is None or usuario_portador is None or tipo_documento is None):
             print(f"texto: {texto}")
-            raise ValueError(f"Informações insuficientes para renomear o arquivo. \ntipo_documento: {tipo_documento}\nMatrícula: {matricula}\nSerial: {serial_maquina}\nUsuário: {usuario_portador}")
+            raise ValueError(f"Informações insuficientes para renomear o arquivo. \ntipo_documento: {tipo_documento}\nMatrícula: {matricula}\nSerial: {serial_maquina}\nUsuário: {usuario_portador} \nArquivo: {possivel_titulo_completo}")
 
         if possivel_titulo_completo:
-            novo_nome = possivel_titulo_completo.group(0)
+            novo_nome = possivel_titulo_completo.replace("\n\nPRP", "")
         else:
             novo_nome = f"{tipo_documento}_{serial_maquina}-{matricula}-{usuario_portador}"
         # --- Gera o novo nome ---
